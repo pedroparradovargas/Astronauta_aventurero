@@ -99,6 +99,28 @@ editas en VS Code, guardas, y Studio se actualiza. El repo ya incluye el
 > automáticamente en Script / LocalScript / ModuleScript: por eso los archivos
 > se llaman así.
 
+## 🐛 Modelo 3D incluido: el Cucarón-León
+
+En `assets/CucaronLeon.fbx` hay un modelo low-poly del Cucarón-León
+(~1.300 polígonos) listo para importar, generado con el script
+`tools/build_cucaron.py` (Blender/bpy — edítalo y re-ejecútalo para variar
+la criatura). Vistas previas en `assets/cucaron_*.png`.
+
+Para meterlo en el juego:
+
+1. En Studio: **Avatar** (o *Home*) → **Import 3D** → elige `CucaronLeon.fbx`
+   → *Import*. Llegará como un Model con 5 MeshParts (Cuerpo, Melena, Patas,
+   Mandibulas, Ojos).
+2. Dale la anatomía que piden los scripts: dentro del Model inserta un
+   **Humanoid** y una Part llamada **`HumanoidRootPart`** (tamaño aprox.
+   `4, 2.5, 6`, `Transparency = 1`) centrada en el cuerpo.
+3. Suelda cada MeshPart a la raíz con **WeldConstraint**, desancla todo
+   (`Anchored = false`) y pon `CanCollide = false` en las MeshParts
+   (que colisione solo la raíz).
+4. En las MeshParts de los Ojos: `Material = Neon` para que brillen.
+5. Renómbralo `CucaronLeon1` y muévelo a `Workspace/Enemigos`. El
+   `EnemySpawner` le inyecta la IA al instante.
+
 ## Sustituir los placeholders por tu mapa real
 
 Cuando construyas el mapa de verdad, los scripts detectan tus modelos y dejan
