@@ -20,9 +20,13 @@ ServerScriptService
 ├── Core                     (sistemas centrales del bucle de juego)
 │   ├── ThirstSystem         ← Script: deshidratación por los 5 soles
 │   ├── NucleoSystem         ← Script: los 5 Núcleos y la Nave de Escape
-│   └── ConsumableSystem     ← Script: cápsulas de agua, baterías, botiquines
+│   ├── ConsumableSystem     ← Script: cápsulas de agua, baterías, botiquines
+│   └── RobotSystem          ← Script: despliega un Robot aliado por astronauta
 └── AI                       (inteligencia artificial de la fauna)
-    ├── CucaronLeon          ← ModuleScript OOP: caza con PathfindingService
+    ├── CriaturaBase         ← Clase base: caza + pathfinding configurable
+    ├── CucaronLeon          ← Hereda de CriaturaBase (caza jugadores y bichos)
+    ├── AranaVeinteOjos      ← Hereda y añade veneno (caza Cucarones también)
+    ├── RobotAliado          ← Hereda el movimiento; bucle de escolta propio
     └── EnemySpawner         ← Script: activa la IA de Workspace/Enemigos
 
 StarterPlayer
@@ -70,9 +74,10 @@ Cada segundo, `ThirstSystem`:
 Todos los valores son constantes al inicio de cada archivo — balancea el juego
 tocando la configuración, no la lógica.
 
-## 🕷️ IA del Cucarón-León (PathfindingService)
+## 🕷️ Ecosistema alienígena (PathfindingService + herencia)
 
-`CucaronLeon.lua` implementa el ciclo clásico de un depredador:
+`CriaturaBase.lua` implementa el ciclo clásico de un depredador de forma
+**configurable**, y cada especie hereda de ella declarando solo su config:
 
 ```
 buscar presa → calcular ruta (ComputeAsync) → recorrer waypoints → morder
@@ -80,7 +85,18 @@ buscar presa → calcular ruta (ComputeAsync) → recorrer waypoints → morder
       └────────────── recalcular cada 0.35 s ────────────────────────┘
 ```
 
-Detalles importantes del ejemplo:
+| Especie | Caza jugadores | Caza bichos | Rasgo único |
+| --- | --- | --- | --- |
+| `CucaronLeon` | ✅ sin piedad | `BichoMenor` | mordisco fuerte, salta cráteres |
+| `AranaVeinteOjos` | ✅ | `CucaronLeon`, `BichoMenor` | **veneno** (daño residual) y visión de 160 studs |
+| `BichoMenor` | ❌ | — | presa pacífica: la base de la cadena alimenticia |
+
+Los bichos **se comen entre sí**: la tabla `PRESAS` de cada especie lista los
+prefijos de nombre que caza dentro de `Workspace/Enemigos`. La araña
+sobrescribe `IntentarAtacar` para inyectar veneno solo cuando acierta —
+ejemplo de cómo extender la base sin duplicar el pathfinding.
+
+Detalles importantes del pathfinding (en `CriaturaBase:IrHacia`):
 
 - `CreatePath` recibe `AgentRadius`/`AgentHeight` acordes al tamaño del bicho
   y `AgentCanJump = true` para saltar cráteres.
@@ -93,9 +109,26 @@ Detalles importantes del ejemplo:
 - La tabla `Costs` con `PathfindingModifier` permite que el bicho rodee zonas
   de "LavaSolar" que pintes en el mapa.
 
-Para probarlo: crea en `Workspace` una carpeta `Enemigos` con un Model llamado
-`CucaronLeon1` (con `Humanoid` y `HumanoidRootPart`). `EnemySpawner` le dará
-vida automáticamente, incluso a los que aparezcan después.
+Para probarlo: pon en `Workspace/Enemigos` Models con `Humanoid` y
+`HumanoidRootPart` llamados `CucaronLeon1`, `AranaVeinteOjos1`, `BichoMenor1`…
+`EnemySpawner` les da vida automáticamente (también a los que aparezcan
+después) y, si la carpeta está vacía, **genera una manada de placeholders**
+para ver el ecosistema funcionando en una Baseplate.
+
+## 🤖 Robots aliados
+
+`RobotSystem` despliega un Robot junto a cada astronauta al aparecer (clona
+`ServerStorage/RobotAliado` si existe; si no, construye un placeholder con un
+ojo de neón). `RobotAliado` hereda el movimiento de `CriaturaBase` pero
+reemplaza el bucle de caza por un **bucle de escolta** con prioridades:
+
+1. **Defender**: si un bicho se acerca a menos de 35 studs de su dueño, lo
+   intercepta y le lanza descargas eléctricas.
+2. **Seguir**: si el dueño se aleja más de 8 studs, lo sigue con pathfinding.
+3. **Guardia**: si está al lado de su dueño, espera vigilando.
+
+El robot nunca ataca astronautas (`CAZA_JUGADORES = false`) y renace con su
+dueño en cada respawn.
 
 ## ⚡ Sistema de los 5 Núcleos (objetivo de escape)
 
@@ -139,7 +172,8 @@ dibuja lo que llega por `ActualizarStats` y `ActualizarNucleos`.
 
 ## 🔜 Próximos pasos sugeridos
 
-- IA de la araña de 20 ojos reutilizando `CucaronLeon` como clase base.
-- Ecosistema: que los bichos se cacen entre sí (la araña caza Cucarones).
-- Robots aliados que sigan al astronauta y carguen núcleos.
+- Que los bichos también ataquen a los Robots aliados (y viceversa: combates).
+- Robots capaces de cargar núcleos (integrar `RobotAliado` con `NucleoSystem`).
+- Efecto visual y aviso en el HUD del estado `Envenenado` (ya es un atributo).
 - Progreso persistente con `DataStoreService` (núcleos entre sesiones).
+- Sonidos y animaciones por especie (rugido del Cucarón, chasquido de la araña).
