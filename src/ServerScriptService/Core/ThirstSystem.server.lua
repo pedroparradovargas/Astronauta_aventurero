@@ -9,15 +9,15 @@
 	  1. Comprueba si el jugador está expuesto al sol (raycast hacia arriba).
 	  2. Resta sed según la exposición y el estado del traje.
 	  3. Si la sed llega a 0, aplica daño por deshidratación.
-	  4. Replica los valores al cliente por RemoteEvent para dibujar la UI.
+
+	El registro de jugadores y la replicación al cliente viven en
+	Modules/StatsService; aquí solo está el bucle de deshidratación.
 
 	Ubicación: ServerScriptService/Core/ThirstSystem
 ]]
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local PlayerStats = require(script.Parent.Parent.Modules.PlayerStats)
+local StatsService = require(script.Parent.Parent.Modules.StatsService)
 
 --------------------------------------------------------------------
 -- Configuración del sistema
@@ -27,49 +27,6 @@ local SED_POR_TICK_SOL = 0.8       -- deshidratación bajo los soles
 local SED_POR_TICK_SOMBRA = 0.2    -- a la sombra o bajo techo se pierde menos
 local ENERGIA_POR_TICK = 0.15      -- el traje gasta energía refrigerando
 local ALTURA_RAYCAST = 500         -- distancia del rayo hacia el "cielo"
-
---------------------------------------------------------------------
--- RemoteEvent para replicar las estadísticas al cliente (solo lectura)
---------------------------------------------------------------------
-local remotes = ReplicatedStorage:FindFirstChild("Remotes") or Instance.new("Folder")
-remotes.Name = "Remotes"
-remotes.Parent = ReplicatedStorage
-
-local statsRemote = Instance.new("RemoteEvent")
-statsRemote.Name = "ActualizarStats"
-statsRemote.Parent = remotes
-
---------------------------------------------------------------------
--- Registro de estadísticas por jugador
---------------------------------------------------------------------
-local statsPorJugador: { [Player]: PlayerStats.PlayerStats } = {}
-
-Players.PlayerAdded:Connect(function(player)
-	local stats = PlayerStats.new(player)
-	statsPorJugador[player] = stats
-
-	-- Cada cambio de estadística se replica al dueño de la UI
-	stats.StatChanged.Event:Connect(function()
-		statsRemote:FireClient(player, stats:Serializar())
-	end)
-
-	-- Al reaparecer, restauramos sed y energía al máximo
-	stats.Murio.Event:Connect(function()
-		stats:ModificarSed(PlayerStats.CONFIG.SED_MAXIMA)
-		stats:ModificarEnergia(PlayerStats.CONFIG.ENERGIA_MAXIMA)
-	end)
-
-	-- Estado inicial para la UI
-	statsRemote:FireClient(player, stats:Serializar())
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-	local stats = statsPorJugador[player]
-	if stats then
-		stats:Destroy()
-		statsPorJugador[player] = nil
-	end
-end)
 
 --------------------------------------------------------------------
 -- ¿Está el astronauta expuesto a los soles?
@@ -92,34 +49,32 @@ end
 --------------------------------------------------------------------
 -- Bucle principal de deshidratación
 --------------------------------------------------------------------
-task.spawn(function()
-	while true do
-		task.wait(TICK_SEGUNDOS)
+while true do
+	task.wait(TICK_SEGUNDOS)
 
-		for player, stats in statsPorJugador do
-			local character = player.Character
-			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-			if not character or not humanoid or humanoid.Health <= 0 then
-				continue
-			end
+	for player, stats in StatsService.Todos() do
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not character or not humanoid or humanoid.Health <= 0 then
+			continue
+		end
 
-			-- 1) Calcular pérdida de sed según exposición solar
-			local perdida = if estaBajoElSol(character)
-				then SED_POR_TICK_SOL
-				else SED_POR_TICK_SOMBRA
+		-- 1) Calcular pérdida de sed según exposición solar
+		local perdida = if estaBajoElSol(character)
+			then SED_POR_TICK_SOL
+			else SED_POR_TICK_SOMBRA
 
-			-- 2) Sin energía en el traje, la refrigeración falla: doble sed
-			if not stats:TieneEnergia() then
-				perdida *= PlayerStats.CONFIG.MULTIPLICADOR_SIN_ENERGIA
-			end
+		-- 2) Sin energía en el traje, la refrigeración falla: doble sed
+		if not stats:TieneEnergia() then
+			perdida *= PlayerStats.CONFIG.MULTIPLICADOR_SIN_ENERGIA
+		end
 
-			stats:ModificarSed(-perdida)
-			stats:ModificarEnergia(-ENERGIA_POR_TICK)
+		stats:ModificarSed(-perdida)
+		stats:ModificarEnergia(-ENERGIA_POR_TICK)
 
-			-- 3) Deshidratación total: el astronauta pierde salud
-			if stats:EstaDeshidratado() then
-				stats:AplicarDanio(PlayerStats.CONFIG.DANIO_DESHIDRATACION * TICK_SEGUNDOS)
-			end
+		-- 3) Deshidratación total: el astronauta pierde salud
+		if stats:EstaDeshidratado() then
+			stats:AplicarDanio(PlayerStats.CONFIG.DANIO_DESHIDRATACION * TICK_SEGUNDOS)
 		end
 	end
-end)
+end

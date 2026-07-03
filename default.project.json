@@ -13,6 +13,13 @@
       "AI": {
         "$path": "src/ServerScriptService/AI"
       }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$path": "src/StarterPlayer/StarterPlayerScripts"
+      }
     }
   }
 }

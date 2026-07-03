@@ -15,12 +15,19 @@ El código de `src/` refleja la jerarquía que debes reproducir en Roblox Studio
 ```
 ServerScriptService
 ├── Modules                  (carpeta de ModuleScripts compartidos del servidor)
-│   └── PlayerStats          ← ModuleScript OOP: Sed, Salud, Energía del traje
+│   ├── PlayerStats          ← ModuleScript OOP: Sed, Salud, Energía del traje
+│   └── StatsService         ← Registro central: un PlayerStats por jugador
 ├── Core                     (sistemas centrales del bucle de juego)
-│   └── ThirstSystem         ← Script: deshidratación por los 5 soles
+│   ├── ThirstSystem         ← Script: deshidratación por los 5 soles
+│   ├── NucleoSystem         ← Script: los 5 Núcleos y la Nave de Escape
+│   └── ConsumableSystem     ← Script: cápsulas de agua, baterías, botiquines
 └── AI                       (inteligencia artificial de la fauna)
     ├── CucaronLeon          ← ModuleScript OOP: caza con PathfindingService
     └── EnemySpawner         ← Script: activa la IA de Workspace/Enemigos
+
+StarterPlayer
+└── StarterPlayerScripts
+    └── StatsHUD             ← LocalScript: barras de supervivencia y contador
 ```
 
 ### ¿Por qué esta estructura en `ServerScriptService`?
@@ -41,6 +48,11 @@ ServerScriptService
 3. **Un solo bucle por sistema.** `ThirstSystem` corre UN bucle que itera
    sobre todos los jugadores, en lugar de un bucle por jugador: mucho más
    barato y fácil de pausar/depurar.
+
+4. **Un registro compartido.** `StatsService` es el único dueño del mapa
+   jugador → `PlayerStats`. Cualquier sistema (sed, consumibles, futuros
+   power-ups) obtiene las estadísticas con `StatsService.Obtener(player)`
+   en lugar de mantener su propia copia.
 
 ## 🌡️ Cómo funciona el sistema de sed
 
@@ -85,10 +97,49 @@ Para probarlo: crea en `Workspace` una carpeta `Enemigos` con un Model llamado
 `CucaronLeon1` (con `Humanoid` y `HumanoidRootPart`). `EnemySpawner` le dará
 vida automáticamente, incluso a los que aparezcan después.
 
+## ⚡ Sistema de los 5 Núcleos (objetivo de escape)
+
+`NucleoSystem` gestiona la condición de victoria:
+
+1. Cada `BasePart` llamada `Nucleo*` dentro de `Workspace/Nucleos` recibe un
+   `ProximityPrompt` **"Recoger Núcleo"**.
+2. Al recogerlo, el núcleo se **suelda a la espalda** del astronauta con un
+   `WeldConstraint`: todos ven quién lo lleva, y los Cucarones-Leones tienen
+   un objetivo brillante que perseguir.
+3. Solo se puede llevar **un núcleo a la vez** — hay que hacer viajes.
+4. Si el portador muere, el núcleo **cae donde murió** y otro jugador puede
+   recuperarlo (¡rescates épicos!).
+5. En `Workspace/NaveEscape/PanelNucleos` se instala con el prompt
+   **"Instalar Núcleo"**. Con los 5 instalados, la nave se enciende y todos
+   los clientes ven la pantalla de victoria.
+
+Si el mapa aún no tiene núcleos o nave, el script crea **placeholders** para
+poder probar todo el ciclo en una Baseplate vacía.
+
+## 🧃 Consumibles
+
+`ConsumableSystem` usa un catálogo declarativo: cualquier `BasePart` dentro de
+`Workspace/Consumibles` cuyo nombre esté en la tabla `CONSUMIBLES` recibe un
+prompt y aplica su efecto al usarse (una sola vez, a prueba de doble uso):
+
+| Nombre de la Part | Efecto |
+| --- | --- |
+| `CapsulaAgua` | +40 de Sed |
+| `BateriaTraje` | +50 de Energía del traje |
+| `RacionMedica` | +35 de Salud |
+
+Para añadir un consumible nuevo basta con añadir una entrada a la tabla.
+
+## 🖥️ HUD del cliente
+
+`StatsHUD` (LocalScript) construye toda la interfaz por código: barras de
+Salud/Sed/Energía con tweens suaves y parpadeo de alerta bajo el 20 %, más el
+contador `⚡ Núcleos: X/5`. El cliente **nunca calcula estadísticas**: solo
+dibuja lo que llega por `ActualizarStats` y `ActualizarNucleos`.
+
 ## 🔜 Próximos pasos sugeridos
 
-- UI del cliente (`StarterGui`) que escuche `ActualizarStats` y dibuje barras.
-- Objetos consumibles (cápsulas de agua reciclada) que llamen a `ModificarSed`.
-- Sistema de los 5 Núcleos con `ProximityPrompt` y progreso guardado en
-  `DataStoreService`.
 - IA de la araña de 20 ojos reutilizando `CucaronLeon` como clase base.
+- Ecosistema: que los bichos se cacen entre sí (la araña caza Cucarones).
+- Robots aliados que sigan al astronauta y carguen núcleos.
+- Progreso persistente con `DataStoreService` (núcleos entre sesiones).
