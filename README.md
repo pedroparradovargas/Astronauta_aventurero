@@ -25,7 +25,8 @@ ServerScriptService
 │   ├── ThirstSystem         ← Script: deshidratación por los 5 soles
 │   ├── NucleoSystem         ← Script: los 5 Núcleos y la Nave de Escape
 │   ├── ConsumableSystem     ← Script: cápsulas de agua, baterías, botiquines
-│   └── RobotSystem          ← Script: despliega un Robot aliado por astronauta
+│   ├── RobotSystem          ← Script: despliega un Robot aliado por astronauta
+│   └── SuitSystem           ← Script: viste a cada jugador con el traje espacial
 └── AI                       (inteligencia artificial de la fauna)
     ├── CriaturaBase         ← Clase base: caza + pathfinding configurable
     ├── CucaronLeon          ← Hereda de CriaturaBase (caza jugadores y bichos)

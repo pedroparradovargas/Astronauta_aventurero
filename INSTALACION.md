@@ -36,7 +36,8 @@ ServerScriptService
 │   ├── ThirstSystem     → Script       ← src/ServerScriptService/Core/ThirstSystem.server.lua
 │   ├── NucleoSystem     → Script       ← src/ServerScriptService/Core/NucleoSystem.server.lua
 │   ├── ConsumableSystem → Script       ← src/ServerScriptService/Core/ConsumableSystem.server.lua
-│   └── RobotSystem      → Script       ← src/ServerScriptService/Core/RobotSystem.server.lua
+│   ├── RobotSystem      → Script       ← src/ServerScriptService/Core/RobotSystem.server.lua
+│   └── SuitSystem       → Script       ← src/ServerScriptService/Core/SuitSystem.server.lua
 └── AI (Folder)
     ├── CriaturaBase     → ModuleScript ← src/ServerScriptService/AI/CriaturaBase.lua
     ├── CucaronLeon      → ModuleScript ← src/ServerScriptService/AI/CucaronLeon.lua
@@ -120,6 +121,35 @@ Para meterlo en el juego:
 4. En las MeshParts de los Ojos: `Material = Neon` para que brillen.
 5. Renómbralo `CucaronLeon1` y muévelo a `Workspace/Enemigos`. El
    `EnemySpawner` le inyecta la IA al instante.
+
+## 👨‍🚀 El personaje del Astronauta (traje espacial)
+
+En Roblox, el personaje jugable es el **avatar del propio jugador** (con
+todas sus animaciones de caminar, saltar, etc.). Lo profesional no es
+reemplazarlo, sino **vestirlo**: el script `Core/SuitSystem` pinta el cuerpo
+de blanco, quita la ropa del avatar y le suelda el equipo de astronauta en
+cada respawn.
+
+**Sin hacer nada**, el script ya funciona: construye un traje placeholder
+por código (burbuja de casco + visor dorado + mochila + 2 tanques).
+
+Para usar el modelo bonito de `assets/TrajeAstronauta.fbx`
+(vistas previas en `assets/astronauta_*.png`):
+
+1. **Import 3D** → `TrajeAstronauta.fbx`. Llegan 4 MeshParts: `Casco`,
+   `Visor`, `Mochila` y `Tanques`.
+2. Inserta una Part llamada **`Referencia`** (tamaño `2, 2, 1`,
+   `Transparency = 1`, anclada) y colócala donde estaría el **pecho** de un
+   personaje: ajusta el casco sobre ella y la mochila detrás hasta que
+   encaje como en las vistas previas.
+3. Agrupa las 4 mallas + la `Referencia` en un Model llamado
+   **`TrajeAstronauta`** y muévelo a **`ServerStorage`**.
+4. Listo: en el siguiente Play, `SuitSystem` calculará la posición de cada
+   pieza respecto a la `Referencia` y vestirá a todos los jugadores con el
+   equipo del FBX en lugar del placeholder.
+
+> El casco se suelda al torso (no gira con la cabeza): con las animaciones
+> estándar de Roblox queda perfecto y es mucho más estable físicamente.
 
 ## Sustituir los placeholders por tu mapa real
 
