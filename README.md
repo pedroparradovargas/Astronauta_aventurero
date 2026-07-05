@@ -6,6 +6,10 @@ de agua. Los Astronautas y sus Robots aliados deben ensamblar **5 Núcleos de
 energía** para escapar, mientras arañas de 20 ojos y **Cucarones-Leones** de
 10 patas los cazan sin piedad.
 
+> 📱 **Estás en la rama MÓVIL** (`claude/astroluna-movil`): la versión
+> optimizada para teléfono/tablet. Los cambios específicos y los pasos de
+> publicación están en [MOVIL.md](MOVIL.md).
+>
 > 🛠️ **¿Cómo lo monto en Roblox Studio?** Sigue la guía paso a paso de
 > [INSTALACION.md](INSTALACION.md) (montaje manual en 5 minutos o
 > sincronización con Rojo).

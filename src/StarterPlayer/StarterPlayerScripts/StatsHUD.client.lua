@@ -1,11 +1,16 @@
 --!strict
 --[[
-	StatsHUD.client.lua (LocalScript)
-	=================================
-	Interfaz de supervivencia del astronauta:
-	  - Barras de Salud, Sed y Energía del traje (esquina inferior izquierda).
-	  - Contador de Núcleos instalados (parte superior).
-	  - Pantalla de victoria cuando se instalan los 5 Núcleos.
+	StatsHUD.client.lua (LocalScript) — VERSIÓN MÓVIL
+	=================================================
+	Interfaz de supervivencia adaptada a pantallas táctiles:
+
+	  - Las barras van ARRIBA A LA DERECHA: en móvil, la esquina inferior
+	    izquierda la ocupa el joystick virtual y la inferior derecha el
+	    botón de salto. La zona superior derecha queda libre (ocultamos
+	    la lista de jugadores para garantizarlo).
+	  - Barras más altas y texto más grande: en un teléfono se mira de
+	    lejos y se toca con el dedo.
+	  - Contador de Núcleos en la parte superior central.
 
 	El cliente NUNCA calcula estadísticas: solo dibuja lo que el servidor
 	envía por los RemoteEvents de ReplicatedStorage/Remotes.
@@ -15,6 +20,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
@@ -24,6 +30,20 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local statsRemote = remotes:WaitForChild("ActualizarStats") :: RemoteEvent
 local nucleosRemote = remotes:WaitForChild("ActualizarNucleos") :: RemoteEvent
 
+-- Liberar la esquina superior derecha (la lista de jugadores estorba
+-- en pantallas pequeñas; la reintentamos por si el Core aún no cargó)
+task.spawn(function()
+	for _ = 1, 10 do
+		local ok = pcall(function()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+		end)
+		if ok then
+			return
+		end
+		task.wait(0.5)
+	end
+end)
+
 --------------------------------------------------------------------
 -- Construcción de la interfaz
 --------------------------------------------------------------------
@@ -32,12 +52,12 @@ screenGui.Name = "AstrolunaHUD"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Panel de barras (inferior izquierda)
+-- Panel de barras (superior derecha, lejos del joystick y del salto)
 local panel = Instance.new("Frame")
 panel.Name = "PanelStats"
-panel.AnchorPoint = Vector2.new(0, 1)
-panel.Position = UDim2.new(0, 20, 1, -20)
-panel.Size = UDim2.fromOffset(260, 110)
+panel.AnchorPoint = Vector2.new(1, 0)
+panel.Position = UDim2.new(1, -12, 0, 12)
+panel.Size = UDim2.fromOffset(240, 122)
 panel.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
 panel.BackgroundTransparency = 0.25
 panel.Parent = screenGui
@@ -52,16 +72,16 @@ lista.HorizontalAlignment = Enum.HorizontalAlignment.Center
 lista.VerticalAlignment = Enum.VerticalAlignment.Center
 lista.Parent = panel
 
--- Crea una barra con etiqueta y devuelve su relleno para actualizarla
+-- Crea una barra táctil (más alta que en escritorio) y devuelve su relleno
 local function crearBarra(nombre: string, color: Color3): Frame
 	local fondo = Instance.new("Frame")
 	fondo.Name = "Barra" .. nombre
-	fondo.Size = UDim2.new(1, -20, 0, 24)
+	fondo.Size = UDim2.new(1, -20, 0, 28)
 	fondo.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
 	fondo.Parent = panel
 
 	local esquinasFondo = Instance.new("UICorner")
-	esquinasFondo.CornerRadius = UDim.new(0, 6)
+	esquinasFondo.CornerRadius = UDim.new(0, 7)
 	esquinasFondo.Parent = fondo
 
 	local relleno = Instance.new("Frame")
@@ -72,14 +92,14 @@ local function crearBarra(nombre: string, color: Color3): Frame
 	relleno.Parent = fondo
 
 	local esquinasRelleno = Instance.new("UICorner")
-	esquinasRelleno.CornerRadius = UDim.new(0, 6)
+	esquinasRelleno.CornerRadius = UDim.new(0, 7)
 	esquinasRelleno.Parent = relleno
 
 	local etiqueta = Instance.new("TextLabel")
 	etiqueta.BackgroundTransparency = 1
 	etiqueta.Size = UDim2.fromScale(1, 1)
 	etiqueta.Font = Enum.Font.GothamBold
-	etiqueta.TextSize = 13
+	etiqueta.TextSize = 16
 	etiqueta.TextColor3 = Color3.new(1, 1, 1)
 	etiqueta.TextStrokeTransparency = 0.4
 	etiqueta.Text = nombre
@@ -98,11 +118,11 @@ local contadorNucleos = Instance.new("TextLabel")
 contadorNucleos.Name = "ContadorNucleos"
 contadorNucleos.AnchorPoint = Vector2.new(0.5, 0)
 contadorNucleos.Position = UDim2.new(0.5, 0, 0, 12)
-contadorNucleos.Size = UDim2.fromOffset(240, 32)
+contadorNucleos.Size = UDim2.fromOffset(250, 38)
 contadorNucleos.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
 contadorNucleos.BackgroundTransparency = 0.25
 contadorNucleos.Font = Enum.Font.GothamBold
-contadorNucleos.TextSize = 18
+contadorNucleos.TextSize = 20
 contadorNucleos.TextColor3 = Color3.fromRGB(0, 220, 255)
 contadorNucleos.Text = "⚡ Núcleos: 0/5"
 contadorNucleos.Parent = screenGui
@@ -122,7 +142,7 @@ local function actualizarBarra(relleno: Frame, valor: number, maximo: number)
 		Size = UDim2.fromScale(proporcion, 1),
 	}):Play()
 
-	-- Parpadeo de alerta cuando la estadística está crítica (< 20 %)
+	-- Alerta cuando la estadística está crítica (< 20 %)
 	relleno.BackgroundTransparency = if proporcion < 0.2 then 0.3 else 0
 end
 
@@ -140,7 +160,7 @@ local function mostrarVictoria()
 	aviso.Name = "AvisoVictoria"
 	aviso.AnchorPoint = Vector2.new(0.5, 0.5)
 	aviso.Position = UDim2.fromScale(0.5, 0.4)
-	aviso.Size = UDim2.fromOffset(600, 90)
+	aviso.Size = UDim2.fromScale(0.9, 0.2)
 	aviso.BackgroundTransparency = 1
 	aviso.Font = Enum.Font.GothamBlack
 	aviso.TextScaled = true

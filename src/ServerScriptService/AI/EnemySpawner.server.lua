@@ -65,9 +65,10 @@ local function construirCriaturaPlaceholder(especie: string, indice: number, pos
 end
 
 if #carpetaEnemigos:GetChildren() == 0 then
+	-- Manada reducida para la versión móvil: cada Humanoid en movimiento
+	-- se replica y se anima en el teléfono de todos los jugadores
 	local manada = {
 		{ Especie = "CucaronLeon", Posicion = Vector3.new(80, 0, 80) },
-		{ Especie = "CucaronLeon", Posicion = Vector3.new(-90, 0, 70) },
 		{ Especie = "AranaVeinteOjos", Posicion = Vector3.new(0, 0, 140) },
 		{ Especie = "BichoMenor", Posicion = Vector3.new(50, 0, 100) },
 		{ Especie = "BichoMenor", Posicion = Vector3.new(-40, 0, 110) },

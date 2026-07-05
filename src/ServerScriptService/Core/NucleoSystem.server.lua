@@ -167,8 +167,10 @@ local function prepararNucleo(instancia: Instance)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Recoger Núcleo"
 	prompt.ObjectText = "Núcleo de energía"
-	prompt.HoldDuration = 1
-	prompt.MaxActivationDistance = 10
+	-- Ajuste táctil: mantener pulsado en pantalla cansa; pulsación corta
+	-- y más alcance para compensar la puntería con joystick virtual
+	prompt.HoldDuration = 0.5
+	prompt.MaxActivationDistance = 12
 	prompt.Parent = instancia
 
 	prompt.Triggered:Connect(function(player)
@@ -188,8 +190,8 @@ carpetaNucleos.ChildAdded:Connect(prepararNucleo)
 local promptInstalar = Instance.new("ProximityPrompt")
 promptInstalar.ActionText = "Instalar Núcleo"
 promptInstalar.ObjectText = "Nave de Escape"
-promptInstalar.HoldDuration = 2
-promptInstalar.MaxActivationDistance = 12
+promptInstalar.HoldDuration = 1 -- ajuste táctil
+promptInstalar.MaxActivationDistance = 14
 promptInstalar.Parent = panel
 
 promptInstalar.Triggered:Connect(function(player)

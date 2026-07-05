@@ -63,8 +63,8 @@ local function prepararConsumible(instancia: Instance)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = definicion.Accion
 	prompt.ObjectText = instancia.Name
-	prompt.HoldDuration = 0.5
-	prompt.MaxActivationDistance = 8
+	prompt.HoldDuration = 0.25 -- ajuste táctil: casi un toque
+	prompt.MaxActivationDistance = 10
 	prompt.Parent = instancia
 
 	prompt.Triggered:Connect(function(player)
